@@ -1,0 +1,238 @@
+---
+title: "data-preprocess"
+author: "Eshaan Mathakari"
+format: html
+editor: visual
+---
+
+```{r}
+#| label: Setup
+if (!require(pacman)) 
+  install.packages(pacman)
+pacman::p_load(tidyverse,
+               gridExtra,
+               dplyr, 
+               readxl, 
+               qcc, 
+               writexl, 
+               RColorBrewer)
+```
+
+### Reading Original data from Tally
+
+```{r}
+data = read_xlsx(path = "/Users/apple/Desktop/PG/Summer-24/eva-chemlinks/eva-chemlinks-dashboard/data/eva-consolidated-sales-24.xlsx")
+```
+
+```{r}
+data_filtered <- data %>%
+  filter(Particulars != "(cancelled)")
+```
+
+### Finding unique Company names
+
+```{r}
+#| output: False
+unique(data_filtered$Particulars)
+```
+
+```{r}
+  consolidated_sales <- aggregate(Debit ~ Particulars, data = data_filtered, FUN = sum)
+```
+
+```{r}
+## Remove the '#' symbol while running with new database
+write_xlsx(consolidated_sales, path = "/Users/apple/Desktop/PG/Summer-24/eva-chemlinks/eva-chemlinks-dashboard/data/consolidated_sales.xlsx")
+
+```
+
+```{r}
+# Read the sheets into data frames
+consolidated_sales <- read_excel("/Users/apple/Desktop/PG/Summer-24/eva-chemlinks/eva-chemlinks-dashboard/data/consolidated_sales.xlsx")
+locality_records <- read_excel("/Users/apple/Desktop/PG/Summer-24/eva-chemlinks/eva-chemlinks-dashboard/data/locality-records.xlsx")
+```
+
+```{r}
+edited_data = joined_data <- left_join(consolidated_sales, locality_records, by = c("Particulars" = "Particulars"))
+```
+
+```{r}
+unique(edited_data$Locality)
+```
+
+```{r}
+# Define the grouping logic
+edited_data <- edited_data %>%
+  mutate(Section = case_when(
+    Locality %in% c("Hosa Road", "Sarjapur Road", "Bommanahalli", "Kasvanahalli", "Haralur", "HSR Layout") ~ "HSR and around",
+    Locality %in% c("ORR", "Bellandur", "Marathalli", "Varthur", "Whitefield") ~ "Marathalli and Whitefield",
+    Locality %in% c("Jayanagar","Mysore road", "Peenya", "Bannerghatta", "Banshankari", "Kengeri", "Basaveshwar Nagar", "BTM Layout", "Peenya", "HONGASANDRA", "Basaveshwar Nagar", "Hessarghatta Road", "Yeshwanthpur") ~ "Jayanagar and old bangalore",
+    Locality %in% c("Bidadi", "Hosur", "Anekal", "Kengeri", "E-City", "Kanakpura Road", "Horamavu") ~ "Ecity and Outskirts",
+    Locality %in% c("Neelasandra", "Viveka Nagar", "Indiranagar", "Koramangala", "Basavanagara") ~ "Koramangala and Indiranagar",
+    Locality %in% c("Shivaji Nagar", "Thanisandra", "Central Blr", "Rajajinagar", "Islampur", "Benson Town", "Frazer town", "Rammurthy Nagar", "KR Puram", "Yelahanka", "ISKON") ~ "Central Blr and KR Puram",
+    FALSE ~ "Other"
+  ))
+```
+
+```{r}
+print(edited_data)
+```
+
+```{r}
+grouped_data <- edited_data %>%
+  group_by(Section) %>%
+  summarise(Total_Debit = sum(Debit))
+```
+
+```{r}
+glimpse(grouped_data)
+```
+```{r}
+write_xlsx(grouped_data, path = "/Users/apple/Desktop/PG/Summer-24/eva-chemlinks/eva-chemlinks-dashboard/data/grouped_data.xlsx")
+```
+
+#### Monthly sales data
+
+```{r}
+data_filtered <- data_filtered %>%
+  mutate(Date = as.Date(Date, format = "%Y-%m-%d"))  # Adjust the format if necessary
+
+# Group by Year and Month, and summarize total debit
+monthly_sales_data <- data_filtered %>%
+  mutate(Year = year(Date), Month = month(Date)) %>%  # Extract Year and Month
+  group_by(Year, Month) %>%  # Group by Year and Month
+  summarize(total_debit = sum(Debit))  # Sum debit for each month
+
+# Print the processed data
+print(monthly_sales_data)
+```
+
+
+
+```{r}
+write_xlsx(monthly_sales_data, path = "/Users/apple/Desktop/PG/Summer-24/eva-chemlinks/eva-chemlinks-dashboard/data/monthly_sales_data.xlsx")
+```
+
+### Importing monthly purchase Data
+
+```{r}
+monthly_purchase_data = read_xlsx(path = "/Users/apple/Desktop/PG/Summer-24/eva-chemlinks/eva-chemlinks-dashboard/data/eva-monthly-purchases-24.xlsx")
+```
+
+#### Creating Profit table
+
+
+```{r}
+profit_data <- merge(monthly_sales_data, monthly_purchase_data, by = c("Year", "Month"), all.x = TRUE)
+
+```
+
+
+```{r}
+profit_data <- profit_data %>%  # Use pipe operator for chaining
+  mutate(profit = total_debit - total_credit)  # Add new column "difference"
+```
+
+```{r}
+write_xlsx(profit_data, path = "/Users/apple/Desktop/PG/Summer-24/eva-chemlinks/eva-chemlinks-dashboard/data/profit_data.xlsx")
+```
+
+### Importing Data for Product Category Search
+
+```{r}
+purchases = read_xlsx(path = "/Users/apple/Desktop/PG/Summer-24/eva-chemlinks/eva-chemlinks-dashboard/data/eva-consolidated-purchases-24.xlsx")
+```
+
+```{r}
+#| output: False
+unique(purchases)
+```
+
+```{r}
+purchases$Credit  <-  as.numeric(gsub(",", "", purchases$Credit))
+```
+
+```{r}
+consolidated_purchases <- aggregate(Credit ~ Particulars, data = purchases, FUN = sum)
+```
+
+```{r}
+write_xlsx(consolidated_purchases, path = "/Users/apple/Desktop/PG/Summer-24/eva-chemlinks/eva-chemlinks-dashboard/data/consolidated_purchases.xlsx")
+```
+
+#### Test piechart code
+
+```{r}
+
+# Create the ggplot2 object
+#ggplot(consolidated_purchases, aes(x = 2, y = Credit, fill = factor(Particulars))) +
+  #geom_bar(stat = "identity", color = "white") +  
+  #coord_polar(theta = "y") +
+  #scale_fill_manual(values = colors) +
+  #labs(title = "Product Sales Comparison", x = NULL, y = NULL) +
+  #theme_minimal() +
+  #theme(axis.text = element_blank(),  
+        #axis.ticks = element_blank(),  
+        #panel.grid = element_blank(), 
+        #plot.title = element_text(hjust = 0.5))
+```
+
+#### Test dotplot code
+
+```{r}
+#dot_plot <- ggplot(consolidated_purchases, aes(x = Credit, y = reorder(Particulars, Credit))) #+
+  #geom_point(color = "blue", size = 3) +
+  #labs(title = "Product Sales Comparison", x = "Total Sales", y = "Product") +
+  #theme_minimal()
+
+#print(dot_plot)
+```
+
+#### Test bubblechart code
+
+```{r}
+#library(ggplot2)
+
+# Create the bubble plot
+#bubble_plot <- ggplot(consolidated_purchases, aes(x = reorder(Particulars, Credit), y = Credit, size = Credit, fill = Particulars)) +
+  #geom_point(alpha = 0.6, shape = 21, color = "black") +
+  #scale_size_continuous(range = c(3, 15)) +  # Adjust the size range of the bubbles
+  #labs(title = "Product Sales Comparison", x = "Product", y = "Total Sales") +
+  #theme_minimal() +
+  #theme(
+    #axis.text.x = element_text(angle = 45, hjust = 1),
+    #legend.position = "none"
+  #)
+
+## Print the bubble plot
+#print(bubble_plot)
+
+```
+
+
+```{r}
+
+# Ensure necessary libraries are loaded
+library(ggplot2)
+library(dplyr)
+
+# Aggregate and sort data
+top_products <- consolidated_purchases %>%
+  arrange(desc(Credit)) %>%
+  head(10)
+
+# Create the bar chart
+top_products_chart <- ggplot(top_products, aes(x = reorder(Particulars, Credit), y = Credit, fill = Particulars)) +
+  geom_bar(stat = "identity") +
+  labs(title = "Top Products by Total Purchases", x = "Product", y = "Total Purchases") +
+  theme_minimal() +
+  coord_flip() +
+  theme(legend.position = "none")
+c
+print(top_products_chart)
+
+```
+
+
+
+

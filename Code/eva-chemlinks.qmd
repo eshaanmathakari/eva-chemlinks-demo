@@ -1,0 +1,204 @@
+---
+title: "Dashboard"
+author: "Eshaan"
+format:
+  dashboard:
+    theme: [yeti, custom.scss]
+    logo: "logo.png"
+    nav-buttons:
+      - linkedin: 
+        icon: linkedin
+        href: https://www.linkedin.com/in/eva-chemilinks-16352a282
+      - website: 
+        icon: globe
+        href: https://www.evachemilinks.com
+      - instagram:
+        icon: instagram
+        href: https://www.instagram.com/eva_chemilinks/
+---
+
+```{r}
+#| label: Setup
+#| output: False
+#| code-fold: true
+if (!require(pacman)) 
+  install.packages(pacman)
+pacman::p_load(tidyverse,
+               gridExtra,
+               tidytuesdayR,
+               dplyr, 
+               readxl, 
+               qcc, 
+               writexl, 
+               ggrepel, 
+               scales, 
+               plotly, 
+               RColorBrewer, 
+               ggplot2)
+```
+
+### Importing data grouped together
+
+```{r}
+#| label: Data-import
+#| output: False
+#| code-fold: true
+grouped_data = read_xlsx(path = "/Users/apple/Desktop/PG/Summer-24/eva-chemlinks/eva-chemlinks-dashboard/data/grouped_data.xlsx")
+profit_data = read_xlsx(path = "/Users/apple/Desktop/PG/Summer-24/eva-chemlinks/eva-chemlinks-dashboard/data/profit_data.xlsx")
+consolidated_purchases = read_xlsx(path = "/Users/apple/Desktop/PG/Summer-24/eva-chemlinks/eva-chemlinks-dashboard/data/consolidated_purchases.xlsx")
+```
+
+```{r}
+#| label: First-Plot
+#| output: False
+#| code-fold: true
+# Create a date column combining year and month
+profit_data <- profit_data %>%
+  mutate(date = as.Date(paste(Year, Month, "01", sep = "-")))
+
+# Plot the data using the new date column
+profit_time_plot <- ggplot(profit_data, aes(x = date, y = profit)) +
+  geom_line(color = "blue") +
+  labs(title = "Profit Over Time", x = "Date", y = "Profit") +
+  theme_bw() + 
+  scale_y_continuous(labels = comma_format()) +  # Format y-axis labels
+  scale_x_date(date_labels = "%Y-%m", date_breaks = "1 month")  # Format x-axis labels
+```
+
+
+```{r}
+#| label: Second-Plot
+#| output: False
+#| code-fold: true
+barchart <- ggplot(grouped_data, aes(x = reorder(Section, Total_Debit), y = Total_Debit)) +
+  geom_bar(stat = "identity", fill = "skyblue") +
+  labs(title = "Total Sales per Grouped Locality", x = "Locality Group", y = "Total Sales") +
+  scale_y_continuous(labels = scales::comma) +
+  theme_minimal() +
+  coord_flip() +  # Flips the coordinates
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),  # Adjusts text orientation
+    axis.text.y = element_text(size = 10),  # Adjusts y-axis text size
+    plot.title = element_text(size = 14, face = "bold"),  # Adjusts title text
+    axis.title.x = element_text(size = 12),  # Adjusts x-axis title text
+    axis.title.y = element_text(size = 12)   # Adjusts y-axis title text
+  )
+```
+
+```{r}
+#| label: Third-Plot
+#| output: False
+#| code-fold: true
+consolidated_purchases <- consolidated_purchases %>%
+  arrange(desc(Credit))
+
+colors <- c("#66c2a5", "#fc8d62", "#8da0cb", "#e78ac3", "#a6d854", 
+            "#ffd92f", "#e5c494", "#b3b3b3", "#1f78b4", "#33a02c")
+
+product_plotly <- plot_ly(
+  data = consolidated_purchases,
+  labels = ~Particulars,
+  values = ~Credit,
+  type = 'pie',
+  textinfo = 'label+percent',
+  insidetextorientation = 'radial',
+  marker = list(colors = colors)
+) %>%
+  layout(
+    title = 'Product Sales Comparison',
+    showlegend = TRUE
+  )
+```
+
+```{r}
+#| label: Third-Plot-alt
+#| output: False
+#| code-fold: true
+bubble_plot <- ggplot(consolidated_purchases, aes(x = reorder(Particulars, Credit), y = Credit, size = Credit, fill = Particulars)) +
+  geom_point(alpha = 0.6, shape = 21, color = "black") +
+  scale_size_continuous(range = c(3, 15)) +  # Adjust the size range of the bubbles
+  labs(title = "Product Sales Comparison", x = "Product", y = "Total Sales") +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    legend.position = "none"
+  )
+
+# Print the bubble plot
+print(bubble_plot)
+```
+
+
+# Sales
+
+## Row {height=25%}
+```{python}
+#| content: valuebox
+#| title: "Most Selling Product"
+#| background-color: "#d3d3d3"
+#| font-size: "16px"
+import pandas as pd
+
+consolidated_purchases = pd.read_excel("/Users/apple/Desktop/PG/Summer-24/eva-chemlinks/eva-chemlinks-dashboard/data/consolidated_purchases.xlsx")
+most_selling_product = consolidated_purchases.loc[consolidated_purchases['Credit'].idxmax()]
+print(f"{most_selling_product['Particulars']}")
+```
+
+```{python}
+#| content: valuebox
+#| title: "Best Selling Region"
+#| background-color: "#90ee90"
+#| font-size: "10px"
+grouped_data = pd.read_excel("/Users/apple/Desktop/PG/Summer-24/eva-chemlinks/eva-chemlinks-dashboard/data/grouped_data.xlsx")
+best_selling_region = grouped_data.loc[grouped_data['Total_Debit'].idxmax()]
+print(f"{best_selling_region['Section']}")
+
+```
+
+```{python}
+#| content: valuebox
+#| title: "Current Profit Percentage"
+#| background-color: "#add8e6"
+#| font-size: "16px"
+profit_data = pd.read_excel("/Users/apple/Desktop/PG/Summer-24/eva-chemlinks/eva-chemlinks-dashboard/data/profit_data.xlsx")
+latest_month_data = profit_data.loc[profit_data['Year'].idxmax()]
+latest_year = latest_month_data['Year']
+latest_month = latest_month_data['Month']
+latest_data = profit_data[(profit_data['Year'] == latest_year) & (profit_data['Month'] == latest_month)].iloc[0]
+profit_percentage = (latest_data['profit'] / latest_data['total_debit']) * 100
+print(f"{profit_percentage:.2f}%")
+
+```
+
+
+## Plot {height=75%}
+```{r}
+#| label: First-Plot-plotly
+#| title: Total Profit per month
+ggplotly(profit_time_plot)
+```
+
+
+# Locality
+
+```{r}
+#| label: Second-Plot-plotly
+#| title: Sales Per Locality
+ggplotly(barchart, data = grouped_data) %>% config(displayModeBar = TRUE)
+```
+
+# Products 
+
+```{r}
+#| label: Third-Plot-plotly
+#| title: Product popularity Index
+product_plotly
+```
+
+
+```{r}
+#| label: Third-Plot-plotly-alt
+#| title: Product popularity Index
+#ggplotly(bubble_plot)
+```
+
