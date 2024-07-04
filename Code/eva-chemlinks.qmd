@@ -43,9 +43,9 @@ pacman::p_load(tidyverse,
 #| label: Data-import
 #| output: False
 #| code-fold: true
-grouped_data = read_xlsx(path = "/Users/apple/Desktop/PG/Summer-24/eva-chemlinks/eva-chemlinks-dashboard/data/grouped_data.xlsx")
-profit_data = read_xlsx(path = "/Users/apple/Desktop/PG/Summer-24/eva-chemlinks/eva-chemlinks-dashboard/data/profit_data.xlsx")
-consolidated_purchases = read_xlsx(path = "/Users/apple/Desktop/PG/Summer-24/eva-chemlinks/eva-chemlinks-dashboard/data/consolidated_purchases.xlsx")
+grouped_data = read_xlsx(path = "/Users/apple/Desktop/PG/Summer-24/eva-chemlinks/eva-chemlinks-demo/data/anonymized_grouped_data.xlsx")
+profit_data = read_xlsx(path = "/Users/apple/Desktop/PG/Summer-24/eva-chemlinks/eva-chemlinks-demo/data/anonymized_profit_data.xlsx")
+consolidated_purchases = read_xlsx(path = "/Users/apple/Desktop/PG/Summer-24/eva-chemlinks/eva-chemlinks-demo/data/anonymized_consolidated_purchases.xlsx")
 ```
 
 ```{r}
@@ -133,34 +133,37 @@ print(bubble_plot)
 
 ## Row {height=25%}
 ```{python}
+#| label: Top Product block
 #| content: valuebox
 #| title: "Most Selling Product"
 #| background-color: "#d3d3d3"
 #| font-size: "16px"
 import pandas as pd
 
-consolidated_purchases = pd.read_excel("/Users/apple/Desktop/PG/Summer-24/eva-chemlinks/eva-chemlinks-dashboard/data/consolidated_purchases.xlsx")
+consolidated_purchases = pd.read_excel("/Users/apple/Desktop/PG/Summer-24/eva-chemlinks/eva-chemlinks-demo/data/anonymized_consolidated_purchases.xlsx")
 most_selling_product = consolidated_purchases.loc[consolidated_purchases['Credit'].idxmax()]
 print(f"{most_selling_product['Particulars']}")
 ```
 
 ```{python}
+#| label: Top Region block
 #| content: valuebox
 #| title: "Best Selling Region"
 #| background-color: "#90ee90"
 #| font-size: "10px"
-grouped_data = pd.read_excel("/Users/apple/Desktop/PG/Summer-24/eva-chemlinks/eva-chemlinks-dashboard/data/grouped_data.xlsx")
+grouped_data = pd.read_excel("/Users/apple/Desktop/PG/Summer-24/eva-chemlinks/eva-chemlinks-demo/data/anonymized_grouped_data.xlsx")
 best_selling_region = grouped_data.loc[grouped_data['Total_Debit'].idxmax()]
 print(f"{best_selling_region['Section']}")
 
 ```
 
 ```{python}
+#| label: Profit % block
 #| content: valuebox
 #| title: "Current Profit Percentage"
 #| background-color: "#add8e6"
 #| font-size: "16px"
-profit_data = pd.read_excel("/Users/apple/Desktop/PG/Summer-24/eva-chemlinks/eva-chemlinks-dashboard/data/profit_data.xlsx")
+profit_data = pd.read_excel("/Users/apple/Desktop/PG/Summer-24/eva-chemlinks/eva-chemlinks-demo/data/anonymized_profit_data.xlsx")
 latest_month_data = profit_data.loc[profit_data['Year'].idxmax()]
 latest_year = latest_month_data['Year']
 latest_month = latest_month_data['Month']
